@@ -74,6 +74,13 @@
     @media (hover: hover) {
       .card:not(.matched):not(.flipped):hover .card-back { box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
     }
+    .combo-toast { animation: comboToast 1.2s ease-out forwards; }
+    @keyframes comboToast {
+      0% { opacity: 0; transform: scale(0.5) translateY(0); }
+      15% { opacity: 1; transform: scale(1.1) translateY(-4px); }
+      85% { opacity: 1; transform: scale(1) translateY(-8px); }
+      100% { opacity: 0; transform: scale(0.9) translateY(-12px); }
+    }
   </style>
 </head>
 <body class="bg-[#2d1f14] text-[#f5e6d3] min-h-screen overflow-x-hidden select-none">
@@ -128,8 +135,11 @@
     </div>
 
     <!-- Main game grid -->
-    <div id="gameContainer" class="flex flex-col md:flex-row gap-4">
-      <div id="cardGrid" class="flex-1 grid gap-2 md:gap-3 justify-items-center mx-auto"></div>
+    <div id="gameContainer" class="flex flex-col md:flex-row gap-4 relative">
+      <div class="flex-1 relative">
+        <div id="comboToast" class="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1 pointer-events-none z-10 text-[#e8c547] font-bold text-lg text-center"></div>
+        <div id="cardGrid" class="grid gap-2 md:gap-3 justify-items-center mx-auto"></div>
+      </div>
       <div id="jigsawAssembly" class="hidden w-full md:w-52 flex-shrink-0 p-3 bg-[#3d2a1a] rounded-xl border border-[#8b5a2b]/40 md:mt-0 mt-4">
         <p class="text-xs text-[#d4a574] mb-2 font-medium">Jigsaw Assembly</p>
         <div id="jigsawPreview" class="grid grid-cols-2 gap-2"></div>
@@ -255,6 +265,10 @@
         playTone(523.25, t, 0.12);
         playTone(659.25, t + 0.08, 0.12);
         playTone(783.99, t + 0.16, 0.15);
+      } else if (type === 'combo') {
+        playTone(659.25, t, 0.1);
+        playTone(783.99, t + 0.08, 0.1);
+        playTone(1046.5, t + 0.16, 0.15);
       } else if (type === 'mismatch') {
         playTone(180, t, 0.1);
         playTone(140, t + 0.12, 0.15);
@@ -278,7 +292,9 @@
       matchedCryptograms: [],
       hasShownWordSearch: false,
       hasShownCryptogram: false,
-      soundMuted: false
+      soundMuted: false,
+      combo: 0,
+      bestCombo: 0
     };
 
     function startTimer() {
@@ -330,10 +346,14 @@
       state.matchedCryptograms = [];
       state.hasShownWordSearch = false;
       state.hasShownCryptogram = false;
+      state.combo = 0;
+      state.bestCombo = 0;
       stopTimer();
       startTimer();
 
       document.getElementById('score').textContent = 'Score: 0';
+      document.getElementById('comboToast').textContent = '';
+      document.getElementById('comboToast').classList.remove('combo-toast');
       document.getElementById('moves').textContent = 'Moves: 0';
       document.getElementById('legacySidebar').classList.add('hidden');
       document.getElementById('jigsawAssembly').classList.add('hidden');
@@ -389,11 +409,22 @@
 
     function showWinModal() {
       stopTimer();
+      const totalPairs = (state.gridSize * state.gridSize) / 2;
+      const perfectBonus = state.moves <= totalPairs ? 300 : 0;
+      const timeBonus = Math.max(0, Math.floor((totalPairs * 8 - state.timer) / 2));
+      state.score += perfectBonus + timeBonus;
       playSound('win');
       document.getElementById('winPlayerName').textContent = CONFIG.playerName;
       const mins = Math.floor(state.timer / 60);
       const secs = state.timer % 60;
-      document.getElementById('winStats').innerHTML = `<span>Score: ${state.score}</span><span>Moves: ${state.moves}</span><span>Time: ${mins}:${String(secs).padStart(2, '0')}</span>`;
+      let statsHtml = `<span>Score: ${state.score}</span><span>Moves: ${state.moves}</span><span>Time: ${mins}:${String(secs).padStart(2, '0')}</span>`;
+      const extras = [];
+      if (state.bestCombo >= 2) extras.push(`Best combo: ${state.bestCombo}×`);
+      if (perfectBonus > 0) extras.push(`Perfect memory: +${perfectBonus}`);
+      if (timeBonus > 0) extras.push(`Speed bonus: +${timeBonus}`);
+      if (extras.length) statsHtml += `<span class="w-full text-[#e8c547]/90 text-xs mt-1">${extras.join(' • ')}</span>`;
+      document.getElementById('winStats').innerHTML = statsHtml;
+      document.getElementById('winStats').className = 'flex flex-wrap justify-center gap-4 mb-4 text-sm text-[#d4a574]/90';
       const jigsawDiv = document.getElementById('winJigsaw');
       if (state.matchedJigsaws.length > 0) {
         const imgs = [...new Set(state.matchedJigsaws)].slice(0, 4).map((ji, i) =>
@@ -430,6 +461,7 @@
       const card = state.deck[index];
       const el = document.getElementById('cardGrid').children[index];
       if (el.classList.contains('matched') || el.classList.contains('flipped')) return;
+      if (state.flipped.length === 1 && state.flipped[0].index === index) return;
 
       el.classList.add('flipped');
       state.flipped.push({ index, card, el });
@@ -442,10 +474,23 @@
           (a.card.type === 'mahjong' && a.card.id === b.card.id);
 
         if (match) {
-          playSound('match');
+          state.combo++;
+          if (state.combo > state.bestCombo) state.bestCombo = state.combo;
+          const baseScore = 100;
+          const comboBonus = Math.min(state.combo - 1, 4) * 50;
+          const points = baseScore + comboBonus;
+          state.score += points;
           state.matched++;
-          state.score += 100;
+          playSound(state.combo >= 2 ? 'combo' : 'match');
           document.getElementById('score').textContent = `Score: ${state.score}`;
+          if (state.combo >= 2) {
+            const toast = document.getElementById('comboToast');
+            toast.textContent = `${state.combo}× Combo! +${points}`;
+            toast.classList.remove('combo-toast');
+            toast.offsetHeight;
+            toast.classList.add('combo-toast');
+            setTimeout(() => { toast.textContent = ''; toast.classList.remove('combo-toast'); }, 1200);
+          }
           a.el.classList.add('matched');
           b.el.classList.add('matched');
           a.el.querySelector('.card-front')?.classList.add('match-pulse');
@@ -480,6 +525,7 @@
           if (state.matched >= totalPairs) setTimeout(showWinModal, 500);
           state.flipped = [];
         } else {
+          state.combo = 0;
           playSound('mismatch');
           a.el.classList.add('mismatch-shake');
           b.el.classList.add('mismatch-shake');
