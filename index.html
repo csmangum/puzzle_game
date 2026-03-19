@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Dad's Puzzle Legacy Memory Match</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <style>
@@ -14,10 +17,12 @@
       --puzzle-accent: #8b5a2b;
       --puzzle-light: #f5e6d3;
       --match-glow: #e8c547;
+      --font-heading: 'Libre Baskerville', Georgia, serif;
+      --font-body: 'Source Sans 3', system-ui, sans-serif;
     }
 
     * { -webkit-tap-highlight-color: transparent; touch-action: manipulation; box-sizing: border-box; }
-    html { font-size: 16px; }
+    html { font-size: 16px; font-family: var(--font-body); }
     @media (min-width: 768px) { html { font-size: 18px; } }
     @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
 
@@ -26,7 +31,8 @@
     .card.matched .card-inner { transform: rotateY(180deg); }
     .card.matched { pointer-events: none; }
     .card.matched .card-back { box-shadow: 0 0 24px var(--match-glow), inset 0 0 0 2px var(--match-glow); }
-    .card .card-back { border: 2px solid rgba(212, 165, 116, 0.3); transition: box-shadow 0.3s ease; }
+    .card .card-back { border: 2px solid rgba(212, 165, 116, 0.3); transition: box-shadow 0.3s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08); }
+    .card .card-front { box-shadow: inset 0 2px 8px rgba(0,0,0,0.2); }
 
     .jigsaw-snap { animation: jigsawSnap 0.5s ease-out forwards; }
     @keyframes jigsawSnap {
@@ -58,14 +64,15 @@
       to { transform: translateY(100vh) rotate(720deg); }
     }
 
-    .progress-bar-fill { transition: width 0.4s ease-out; }
+    .progress-bar-fill { transition: width 0.4s ease-out; background: linear-gradient(90deg, #e8c547 0%, #d4a574 100%) !important; box-shadow: 0 0 8px rgba(232,197,71,0.4), inset 0 1px 0 rgba(255,255,255,0.3); }
+    .progress-bar-track { background: #2d1f14; box-shadow: inset 0 2px 4px rgba(0,0,0,0.4); }
     .modal-enter { animation: modalEnter 0.3s ease-out; }
     @keyframes modalEnter {
       from { opacity: 0; transform: scale(0.95); }
       to { opacity: 1; transform: scale(1); }
     }
 
-    .word-search-cell { width: 2.5rem; height: 2.5rem; font-size: 0.875rem; display: flex; align-items: center; justify-content: center; font-weight: 600; }
+    .word-search-cell { width: 2.5rem; height: 2.5rem; font-size: 0.875rem; display: flex; align-items: center; justify-content: center; font-weight: 600; background: linear-gradient(180deg, #3d2a1a 0%, #2d1f14 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,0.05); }
     #wordSearchGrid { display: grid; grid-template-columns: repeat(3, 2.5rem); }
     .cryptogram-letter { font-family: 'Georgia', serif; font-size: 1.25rem; letter-spacing: 0.05em; }
     .btn-touch { min-height: 44px; min-width: 44px; }
@@ -81,9 +88,13 @@
       85% { opacity: 1; transform: scale(1) translateY(-8px); }
       100% { opacity: 0; transform: scale(0.9) translateY(-12px); }
     }
+    .btn-primary { background: linear-gradient(180deg, #9d6b3a 0%, #8b5a2b 50%, #6b4423 100%); box-shadow: 0 2px 8px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.15); }
+    .btn-primary:hover { background: linear-gradient(180deg, #a87848 0%, #9d6b3a 50%, #7b5433 100%); }
+    .btn-secondary { background: linear-gradient(180deg, #6b4423 0%, #5a3a1a 100%); box-shadow: 0 2px 6px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1); }
+    .btn-secondary:hover { background: linear-gradient(180deg, #7b5433 0%, #6b4423 100%); }
   </style>
 </head>
-<body class="bg-[#2d1f14] text-[#f5e6d3] min-h-screen overflow-x-hidden select-none">
+<body class="text-[#f5e6d3] min-h-screen overflow-x-hidden select-none" style="background: radial-gradient(ellipse 120% 80% at 50% 0%, #3d2a1a 0%, #2d1f14 50%, #1f1610 100%);">
   <!-- ← CHANGE THESE: Customization section -->
   <script>
     const CONFIG = {
@@ -103,32 +114,33 @@
 
   <div id="app" class="max-w-4xl mx-auto p-4 pb-8">
     <!-- Header -->
-    <header class="text-center mb-4">
-      <h1 class="text-2xl md:text-3xl font-bold text-[#e8c547] mb-1">Dad's Puzzle Legacy</h1>
-      <p class="text-sm text-[#d4a574]">Memory Match</p>
+    <header class="text-center mb-6 pt-2">
+      <h1 class="text-2xl md:text-3xl font-bold text-[#e8c547] mb-1" style="font-family: var(--font-heading); text-shadow: 0 2px 8px rgba(0,0,0,0.3);">Dad's Puzzle Legacy</h1>
+      <p class="text-sm text-[#d4a574]/90 tracking-widest uppercase">Memory Match</p>
+      <div class="mt-3 h-px w-24 mx-auto bg-gradient-to-r from-transparent via-[#8b5a2b]/50 to-transparent"></div>
     </header>
 
     <!-- Stats bar -->
-    <div class="flex flex-wrap justify-between items-center gap-3 mb-4 p-4 bg-[#3d2a1a] rounded-xl border border-[#8b5a2b]/30">
+    <div class="flex flex-wrap justify-between items-center gap-3 mb-4 p-4 rounded-xl border border-[#8b5a2b]/30 shadow-lg" style="background: linear-gradient(180deg, #453020 0%, #3d2a1a 50%, #352515 100%); box-shadow: 0 4px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05);">
       <div class="flex gap-4 md:gap-6" aria-live="polite" aria-atomic="true">
         <span id="score" class="font-semibold text-[#e8c547]">Score: 0</span>
         <span id="moves">Moves: 0</span>
         <span id="timer">Time: 0:00</span>
       </div>
       <div class="flex gap-2 items-center">
-        <button id="soundToggle" aria-label="Toggle sound" aria-pressed="false" class="btn-touch p-2 bg-[#8b5a2b]/70 rounded-lg hover:bg-[#8b5a2b] transition" title="Sound">
+        <button id="soundToggle" aria-label="Toggle sound" aria-pressed="false" class="btn-touch btn-secondary p-2 rounded-lg transition">
           <i id="soundIcon" class="fas fa-volume-up text-sm"></i>
         </button>
-        <button id="gridToggle" aria-label="Switch to 4x4 grid (currently 6x6)" aria-pressed="false" class="btn-touch px-4 py-2 bg-[#8b5a2b] rounded-lg text-sm font-medium hover:bg-[#a0683a] active:scale-95 transition">4×4</button>
-        <button id="newGame" aria-label="Start new game" class="btn-touch px-5 py-2 bg-[#8b5a2b] rounded-lg font-medium hover:bg-[#a0683a] active:scale-95 transition">
+        <button id="gridToggle" aria-label="Switch to 4x4 grid (currently 6x6)" aria-pressed="false" class="btn-touch btn-primary px-4 py-2 rounded-lg text-sm font-medium active:scale-95 transition">4×4</button>
+        <button id="newGame" aria-label="Start new game" class="btn-touch btn-primary px-5 py-2 rounded-lg font-medium active:scale-95 transition">
           <i class="fas fa-redo mr-1.5"></i>New Game
         </button>
       </div>
     </div>
 
     <!-- Legacy progress sidebar (appears after 4 matches) -->
-    <div id="legacySidebar" class="hidden mb-4 p-4 bg-[#3d2a1a] rounded-xl border border-[#8b5a2b]/40">
-      <h3 class="text-[#e8c547] font-semibold mb-3 flex items-center gap-2">
+    <div id="legacySidebar" class="hidden mb-4 p-4 rounded-xl border border-[#8b5a2b]/40" style="background: linear-gradient(180deg, #453020 0%, #3d2a1a 100%); box-shadow: 0 4px 16px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05);">
+      <h3 class="text-[#e8c547] font-semibold mb-3 flex items-center gap-2" style="font-family: var(--font-heading);">
         <i class="fas fa-trophy text-sm"></i>Puzzle Legacy Progress
       </h3>
       <div id="hobbyBars" class="space-y-3"></div>
@@ -137,10 +149,10 @@
     <!-- Main game grid -->
     <div id="gameContainer" class="flex flex-col md:flex-row gap-4 relative">
       <div class="flex-1 relative">
-        <div id="comboToast" class="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1 pointer-events-none z-10 text-[#e8c547] font-bold text-lg text-center"></div>
+        <div id="comboToast" class="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1 pointer-events-none z-10 text-[#e8c547] font-bold text-lg text-center" style="text-shadow: 0 0 12px rgba(232,197,71,0.6), 0 2px 4px rgba(0,0,0,0.5);"></div>
         <div id="cardGrid" class="grid gap-2 md:gap-3 justify-items-center mx-auto"></div>
       </div>
-      <div id="jigsawAssembly" class="hidden w-full md:w-52 flex-shrink-0 p-3 bg-[#3d2a1a] rounded-xl border border-[#8b5a2b]/40 md:mt-0 mt-4">
+      <div id="jigsawAssembly" class="hidden w-full md:w-52 flex-shrink-0 p-3 rounded-xl border border-[#8b5a2b]/40 md:mt-0 mt-4" style="background: linear-gradient(180deg, #453020 0%, #3d2a1a 100%); box-shadow: 0 4px 16px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05);">
         <p class="text-xs text-[#d4a574] mb-2 font-medium">Jigsaw Assembly</p>
         <div id="jigsawPreview" class="grid grid-cols-2 gap-2"></div>
       </div>
@@ -148,30 +160,30 @@
   </div>
 
   <!-- Modals -->
-  <div id="wordSearchModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 hidden p-4" role="dialog" aria-modal="true" aria-labelledby="wordSearchTitle">
-    <div class="bg-[#3d2a1a] rounded-xl p-6 max-w-sm modal-enter border border-[#8b5a2b]/50 shadow-2xl" onclick="event.stopPropagation()">
-      <h3 id="wordSearchTitle" class="text-[#e8c547] font-bold text-lg mb-3">Mini Word Search</h3>
+  <div id="wordSearchModal" class="fixed inset-0 flex items-center justify-center z-50 hidden p-4 backdrop-blur-sm" style="background: rgba(0,0,0,0.65);" role="dialog" aria-modal="true" aria-labelledby="wordSearchTitle">
+    <div class="rounded-xl p-6 max-w-sm modal-enter border border-[#8b5a2b]/50" style="background: linear-gradient(180deg, #453020 0%, #3d2a1a 100%); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.6), 0 0 0 1px rgba(139,90,43,0.2), inset 0 1px 0 rgba(255,255,255,0.08);" onclick="event.stopPropagation()">
+      <h3 id="wordSearchTitle" class="text-[#e8c547] font-bold text-lg mb-3" style="font-family: var(--font-heading);">Mini Word Search</h3>
       <p class="text-xs text-[#d4a574]/90 mb-2">Words from your matches:</p>
       <div id="wordSearchGrid" class="grid gap-0 mb-4"></div>
-      <button id="closeWordSearch" class="btn-touch w-full py-3 bg-[#8b5a2b] rounded-lg font-medium hover:bg-[#a0683a]">Close</button>
+      <button id="closeWordSearch" class="btn-touch btn-primary w-full py-3 rounded-lg font-medium">Close</button>
     </div>
   </div>
 
-  <div id="cryptogramModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 hidden p-4" role="dialog" aria-modal="true" aria-labelledby="cryptogramTitle">
-    <div class="bg-[#3d2a1a] rounded-xl p-6 max-w-md modal-enter border border-[#8b5a2b]/50 shadow-2xl" onclick="event.stopPropagation()">
-      <h3 id="cryptogramTitle" class="text-[#e8c547] font-bold text-lg mb-3">Decoded Message</h3>
-      <p id="cryptogramMessage" class="text-xl font-serif mb-4 text-center py-4 px-4 bg-[#2d1f14]/50 rounded-lg border border-[#8b5a2b]/30"></p>
-      <button id="closeCryptogram" class="btn-touch w-full py-3 bg-[#8b5a2b] rounded-lg font-medium hover:bg-[#a0683a]">Close</button>
+  <div id="cryptogramModal" class="fixed inset-0 flex items-center justify-center z-50 hidden p-4 backdrop-blur-sm" style="background: rgba(0,0,0,0.65);" role="dialog" aria-modal="true" aria-labelledby="cryptogramTitle">
+    <div class="rounded-xl p-6 max-w-md modal-enter border border-[#8b5a2b]/50" style="background: linear-gradient(180deg, #453020 0%, #3d2a1a 100%); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.6), 0 0 0 1px rgba(139,90,43,0.2), inset 0 1px 0 rgba(255,255,255,0.08);" onclick="event.stopPropagation()">
+      <h3 id="cryptogramTitle" class="text-[#e8c547] font-bold text-lg mb-3" style="font-family: var(--font-heading);">Decoded Message</h3>
+      <p id="cryptogramMessage" class="text-xl mb-4 text-center py-5 px-5 rounded-lg border border-[#8b5a2b]/30" style="font-family: var(--font-heading); background: linear-gradient(180deg, #2d1f14 0%, #251a12 100%); box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);"></p>
+      <button id="closeCryptogram" class="btn-touch btn-primary w-full py-3 rounded-lg font-medium">Close</button>
     </div>
   </div>
 
-  <div id="winModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 hidden p-4" role="dialog" aria-modal="true" aria-labelledby="winTitle">
-    <div class="bg-[#3d2a1a] rounded-xl p-8 max-w-md modal-enter text-center border border-[#8b5a2b]/50 shadow-2xl" onclick="event.stopPropagation()">
-      <h2 id="winTitle" class="text-2xl font-bold text-[#e8c547] mb-2">Congratulations, <span id="winPlayerName"></span>!</h2>
-      <p class="text-[#d4a574] mb-3">You completed the Puzzle Legacy!</p>
+  <div id="winModal" class="fixed inset-0 flex items-center justify-center z-50 hidden p-4 backdrop-blur-sm" style="background: rgba(0,0,0,0.65);" role="dialog" aria-modal="true" aria-labelledby="winTitle">
+    <div class="rounded-xl p-8 max-w-md modal-enter text-center border border-[#8b5a2b]/50" style="background: linear-gradient(180deg, #453020 0%, #3d2a1a 100%); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.6), 0 0 0 1px rgba(139,90,43,0.2), inset 0 1px 0 rgba(255,255,255,0.08);" onclick="event.stopPropagation()">
+      <h2 id="winTitle" class="text-2xl font-bold text-[#e8c547] mb-2" style="font-family: var(--font-heading); text-shadow: 0 2px 8px rgba(0,0,0,0.3);">Congratulations, <span id="winPlayerName"></span>!</h2>
+      <p class="text-[#d4a574]/95 mb-3">You completed the Puzzle Legacy!</p>
       <div id="winStats" class="flex justify-center gap-4 mb-4 text-sm text-[#d4a574]/90"></div>
       <div id="winJigsaw" class="mb-6 min-h-[8rem] flex items-center justify-center"></div>
-      <button id="playAgain" class="btn-touch px-8 py-4 bg-[#8b5a2b] rounded-xl font-bold text-lg hover:bg-[#a0683a] active:scale-95 transition">Play Again</button>
+      <button id="playAgain" class="btn-touch btn-primary px-8 py-4 rounded-xl font-bold text-lg active:scale-95 transition">Play Again</button>
     </div>
   </div>
 
@@ -381,7 +393,7 @@
       const bars = CONFIG.hobbyLabels.map((label, i) => {
         const pct = Math.min(100, Math.max(0, ((state.matched - i * 4) / 4) * 100));
         const icon = icons[i] || 'fa-circle';
-        return `<div><span class="text-xs flex items-center gap-1.5"><i class="fas ${icon} text-[#e8c547]/80 text-[0.65rem] w-3"></i>${label}</span><div class="h-2 bg-[#2d1f14] rounded overflow-hidden mt-0.5"><div class="progress-bar-fill h-full bg-[#e8c547]" style="width:${pct}%"></div></div></div>`;
+        return `<div><span class="text-xs flex items-center gap-1.5"><i class="fas ${icon} text-[#e8c547]/80 text-[0.65rem] w-3"></i>${label}</span><div class="progress-bar-track h-2 rounded overflow-hidden mt-0.5"><div class="progress-bar-fill h-full rounded" style="width:${pct}%"></div></div></div>`;
       });
       document.getElementById('hobbyBars').innerHTML = bars.join('');
     }
