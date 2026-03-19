@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Dad's Puzzle Legacy Memory Match</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    /* ← CHANGE THESE: Custom colors if desired */
+    :root {
+      --puzzle-warm: #d4a574;
+      --puzzle-dark: #2d1f14;
+      --puzzle-accent: #8b5a2b;
+      --puzzle-light: #f5e6d3;
+      --match-glow: #e8c547;
+    }
+
+    * { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+    html { font-size: 16px; }
+    @media (min-width: 768px) { html { font-size: 18px; } }
+
+    .card-inner { transform-style: preserve-3d; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+    .card.flipped .card-inner { transform: rotateY(180deg); }
+    .card.matched .card-inner { transform: rotateY(180deg); }
+    .card.matched { pointer-events: none; }
+    .card.matched .card-back { box-shadow: 0 0 20px var(--match-glow); }
+
+    .jigsaw-snap { animation: jigsawSnap 0.5s ease-out forwards; }
+    @keyframes jigsawSnap {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+
+    .confetti { position: fixed; top: -10px; width: 10px; height: 10px; pointer-events: none; border-radius: 2px; }
+    @keyframes confetti-fall {
+      to { transform: translateY(100vh) rotate(720deg); }
+    }
+
+    .progress-bar-fill { transition: width 0.4s ease-out; }
+    .modal-enter { animation: modalEnter 0.3s ease-out; }
+    @keyframes modalEnter {
+      from { opacity: 0; transform: scale(0.9); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .word-search-cell { width: 2.5rem; height: 2.5rem; font-size: 0.875rem; display: flex; align-items: center; justify-content: center; }
+    #wordSearchGrid { display: grid; grid-template-columns: repeat(3, 2.5rem); }
+    .cryptogram-letter { font-family: 'Georgia', serif; font-size: 1.25rem; }
+  </style>
+</head>
+<body class="bg-[#2d1f14] text-[#f5e6d3] min-h-screen overflow-x-hidden select-none">
+  <!-- ← CHANGE THESE: Customization section -->
+  <script>
+    const CONFIG = {
+      playerName: "Dad",
+      familyPhotoUrls: [
+        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Crect fill='%23d4a574' width='120' height='120'/%3E%3Ctext x='60' y='65' text-anchor='middle' fill='%238b5a2b' font-size='14'%3EUpload your family photo here%3C/text%3E%3C/svg%3E",
+        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Crect fill='%23d4a574' width='120' height='120'/%3E%3Ctext x='60' y='65' text-anchor='middle' fill='%238b5a2b' font-size='14'%3EUpload your family photo here%3C/text%3E%3C/svg%3E",
+        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Crect fill='%23d4a574' width='120' height='120'/%3E%3Ctext x='60' y='65' text-anchor='middle' fill='%238b5a2b' font-size='14'%3EUpload your family photo here%3C/text%3E%3C/svg%3E",
+        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Crect fill='%23d4a574' width='120' height='120'/%3E%3Ctext x='60' y='65' text-anchor='middle' fill='%238b5a2b' font-size='14'%3EUpload your family photo here%3C/text%3E%3C/svg%3E"
+      ],
+      mahjongTiles: ["🀇", "🀈", "🀉", "🀊", "🀋", "🀌", "🀍", "🀎", "🀏", "🀐", "🀑", "🀒", "🀓", "🀔", "🀕", "🀖", "🀗", "🀘"],
+      cryptogramMessages: ["We love you Dad!", "You are the best!", "Puzzle master!", "Family forever!"],
+      hobbyLabels: ["Cryptograms", "Jigsaw", "Mahjong", "Word Search"]
+    };
+  </script>
+
+  <div id="app" class="max-w-4xl mx-auto p-4 pb-8">
+    <!-- Header -->
+    <header class="text-center mb-4">
+      <h1 class="text-2xl md:text-3xl font-bold text-[#e8c547] mb-1">Dad's Puzzle Legacy</h1>
+      <p class="text-sm text-[#d4a574]">Memory Match</p>
+    </header>
+
+    <!-- Stats bar -->
+    <div class="flex justify-between items-center mb-4 p-3 bg-[#3d2a1a] rounded-lg">
+      <div class="flex gap-4 md:gap-6">
+        <span id="score" class="font-semibold">Score: 0</span>
+        <span id="moves">Moves: 0</span>
+        <span id="timer">Time: 0:00</span>
+      </div>
+      <div class="flex gap-2">
+        <button id="gridToggle" aria-label="Toggle 4x4 or 6x6 grid" class="px-3 py-1 bg-[#8b5a2b] rounded text-sm hover:bg-[#a0683a] transition">4×4</button>
+        <button id="newGame" aria-label="Start new game" class="px-4 py-1 bg-[#8b5a2b] rounded font-medium hover:bg-[#a0683a] transition">
+          <i class="fas fa-redo mr-1"></i>New Game
+        </button>
+      </div>
+    </div>
+
+    <!-- Legacy progress sidebar (appears after 4 matches) -->
+    <div id="legacySidebar" class="hidden mb-4 p-4 bg-[#3d2a1a] rounded-lg border border-[#8b5a2b]/50">
+      <h3 class="text-[#e8c547] font-semibold mb-2">Puzzle Legacy Progress</h3>
+      <div id="hobbyBars" class="space-y-2"></div>
+    </div>
+
+    <!-- Main game grid -->
+    <div id="gameContainer" class="flex flex-col md:flex-row gap-4">
+      <div id="cardGrid" class="flex-1 grid gap-2 md:gap-3 justify-center"></div>
+      <div id="jigsawAssembly" class="hidden w-full md:w-48 flex-shrink-0 p-2 bg-[#3d2a1a] rounded-lg md:mt-0 mt-4">
+        <p class="text-xs text-[#d4a574] mb-2">Jigsaw Assembly</p>
+        <div id="jigsawPreview" class="grid grid-cols-2 md:grid-cols-2 gap-1"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modals -->
+  <div id="wordSearchModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 hidden p-4">
+    <div class="bg-[#3d2a1a] rounded-xl p-6 max-w-sm modal-enter">
+      <h3 class="text-[#e8c547] font-bold text-lg mb-3">Mini Word Search</h3>
+      <div id="wordSearchGrid" class="grid gap-0 mb-3"></div>
+      <button id="closeWordSearch" class="w-full py-2 bg-[#8b5a2b] rounded">Close</button>
+    </div>
+  </div>
+
+  <div id="cryptogramModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 hidden p-4">
+    <div class="bg-[#3d2a1a] rounded-xl p-6 max-w-md modal-enter">
+      <h3 class="text-[#e8c547] font-bold text-lg mb-3">Decoded Message</h3>
+      <p id="cryptogramMessage" class="text-xl font-serif mb-4 text-center"></p>
+      <button id="closeCryptogram" class="w-full py-2 bg-[#8b5a2b] rounded">Close</button>
+    </div>
+  </div>
+
+  <div id="winModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 hidden p-4">
+    <div class="bg-[#3d2a1a] rounded-xl p-8 max-w-md modal-enter text-center">
+      <h2 class="text-2xl font-bold text-[#e8c547] mb-2">Congratulations, <span id="winPlayerName"></span>!</h2>
+      <p class="text-[#d4a574] mb-4">You completed the Puzzle Legacy!</p>
+      <div id="winJigsaw" class="mb-4"></div>
+      <button id="playAgain" class="px-6 py-3 bg-[#8b5a2b] rounded-lg font-bold text-lg hover:bg-[#a0683a]">Play Again</button>
+    </div>
+  </div>
+
+  <div id="confettiContainer"></div>
+
+  <script>
+    // Card deck definitions
+    const MAHJONG_PAIRS = [
+      { id: 'm1', type: 'mahjong', front: '🀇', label: 'Bamboo 1' },
+      { id: 'm2', type: 'mahjong', front: '🀈', label: 'Bamboo 2' },
+      { id: 'm3', type: 'mahjong', front: '🀉', label: 'Bamboo 3' },
+      { id: 'm4', type: 'mahjong', front: '🀐', label: 'Character 1' },
+      { id: 'm5', type: 'mahjong', front: '🀑', label: 'Character 2' },
+      { id: 'm6', type: 'mahjong', front: '🀒', label: 'Character 3' }
+    ];
+    const JIGSAW_PAIRS = [
+      { id: 'j1', type: 'jigsaw', front: 'left', imgIdx: 0, label: 'Jigsaw 1', pairId: 'j1' },
+      { id: 'j2', type: 'jigsaw', front: 'right', imgIdx: 0, label: 'Jigsaw 1', pairId: 'j1' },
+      { id: 'j3', type: 'jigsaw', front: 'left', imgIdx: 1, label: 'Jigsaw 2', pairId: 'j2' },
+      { id: 'j4', type: 'jigsaw', front: 'right', imgIdx: 1, label: 'Jigsaw 2', pairId: 'j2' },
+      { id: 'j5', type: 'jigsaw', front: 'left', imgIdx: 2, label: 'Jigsaw 3', pairId: 'j3' },
+      { id: 'j6', type: 'jigsaw', front: 'right', imgIdx: 2, label: 'Jigsaw 3', pairId: 'j3' },
+      { id: 'j7', type: 'jigsaw', front: 'left', imgIdx: 3, label: 'Jigsaw 4', pairId: 'j4' },
+      { id: 'j8', type: 'jigsaw', front: 'right', imgIdx: 3, label: 'Jigsaw 4', pairId: 'j4' }
+    ];
+    const WORD_SEARCH_PAIRS = [
+      { id: 'w1', word: 'FAMILY', clue: 'What we are', label: 'Word Search 1' },
+      { id: 'w2', word: 'PUZZLE', clue: 'A game to solve', label: 'Word Search 2' },
+      { id: 'w3', word: 'LEGACY', clue: 'What you leave behind', label: 'Word Search 3' },
+      { id: 'w4', word: 'LOVE', clue: 'What binds us', label: 'Word Search 4' }
+    ];
+    const CRYPTOGRAM_PAIRS = [
+      { id: 'c1', encrypted: 'XJSSO', decoded: 'HELLO', label: 'Cryptogram 1' },
+      { id: 'c2', encrypted: 'XFMJ', decoded: 'WORD', label: 'Cryptogram 2' },
+      { id: 'c3', encrypted: 'DPMMZ', decoded: 'PUZZLE', label: 'Cryptogram 3' },
+      { id: 'c4', encrypted: 'QEBZ', decoded: 'DAD', label: 'Cryptogram 4' }
+    ];
+
+    // Caesar cipher for cryptogram (shift 3)
+    function caesarEncrypt(text, shift = 3) {
+      return text.toUpperCase().split('').map(c => {
+        if (c >= 'A' && c <= 'Z') {
+          return String.fromCharCode(((c.charCodeAt(0) - 65 + shift) % 26) + 65);
+        }
+        return c;
+      }).join('');
+    }
+
+    // Build full deck: Mahjong pairs are duplicated (identical); Jigsaw/WordSearch/Cryptogram are unique pairs
+    function buildDeck(gridSize) {
+      const pairsNeeded = (gridSize * gridSize) / 2;
+      const mCount = pairsNeeded === 8 ? 2 : 6;
+      const jCount = pairsNeeded === 8 ? 2 : 4;
+      const wCount = pairsNeeded === 8 ? 2 : 4;
+      const cCount = pairsNeeded === 8 ? 2 : 4;
+
+      const m = MAHJONG_PAIRS.slice(0, mCount).flatMap(c => [{ ...c, cardId: c.id + '-1' }, { ...c, cardId: c.id + '-2' }]);
+      const j = JIGSAW_PAIRS.slice(0, jCount * 2);
+      const w = WORD_SEARCH_PAIRS.slice(0, wCount).map(p => [
+        { id: p.id + 'a', type: 'wordsearch', front: p.word, pairId: p.id, label: p.label, word: p.word },
+        { id: p.id + 'b', type: 'wordsearch', front: p.clue, pairId: p.id, label: p.label }
+      ]).flat();
+      const c = CRYPTOGRAM_PAIRS.slice(0, cCount).map(p => [
+        { id: p.id + 'a', type: 'cryptogram', front: caesarEncrypt(p.decoded), pairId: p.id, decoded: p.decoded, label: p.label },
+        { id: p.id + 'b', type: 'cryptogram', front: p.decoded, pairId: p.id, decoded: p.decoded, label: p.label }
+      ]).flat();
+
+      return [...m, ...j, ...w, ...c].sort(() => Math.random() - 0.5);
+    }
+
+    // Web Audio API sounds (synthesized for offline)
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+    function playTone(freq, start, duration) {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, start);
+      gain.gain.setValueAtTime(0.12, start);
+      gain.gain.exponentialRampToValueAtTime(0.01, start + duration);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(start);
+      osc.stop(start + duration);
+    }
+    function playSound(type) {
+      if (!audioCtx) audioCtx = new AudioContext();
+      const t = audioCtx.currentTime;
+      if (type === 'match') {
+        playTone(523.25, t, 0.12);
+        playTone(659.25, t + 0.08, 0.12);
+        playTone(783.99, t + 0.16, 0.15);
+      } else if (type === 'mismatch') {
+        playTone(180, t, 0.1);
+        playTone(140, t + 0.12, 0.15);
+      } else if (type === 'win') {
+        [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => playTone(f, t + i * 0.12, 0.2));
+      }
+    }
+
+    // Game state
+    let state = {
+      gridSize: 6,
+      deck: [],
+      flipped: [],
+      matched: 0,
+      moves: 0,
+      score: 0,
+      timer: 0,
+      timerId: null,
+      matchedWords: [],
+      matchedJigsaws: [],
+      matchedCryptograms: [],
+      hasShownWordSearch: false,
+      hasShownCryptogram: false
+    };
+
+    function startTimer() {
+      if (state.timerId) clearInterval(state.timerId);
+      state.timer = 0;
+      state.timerId = setInterval(() => {
+        state.timer++;
+        document.getElementById('timer').textContent = `Time: ${Math.floor(state.timer / 60)}:${String(state.timer % 60).padStart(2, '0')}`;
+      }, 1000);
+    }
+
+    function stopTimer() {
+      if (state.timerId) clearInterval(state.timerId);
+      state.timerId = null;
+    }
+
+    function renderCard(card, index) {
+      const div = document.createElement('div');
+      div.className = 'card relative cursor-pointer aspect-square min-w-[4rem] max-w-[5rem] md:min-w-[5rem] md:max-w-[6rem]';
+      div.dataset.index = index;
+      div.setAttribute('role', 'button');
+      div.setAttribute('aria-label', `Card ${index + 1}, ${card.label || 'hidden'}`);
+      div.innerHTML = `
+        <div class="card-inner absolute w-full h-full">
+          <div class="card-front absolute w-full h-full rounded-lg bg-[#8b5a2b] flex items-center justify-center text-2xl md:text-3xl backface-hidden" style="backface-visibility: hidden; transform: rotateY(180deg);">
+            ${card.type === 'mahjong' ? `<span class="text-3xl md:text-4xl">${card.front}</span>` : ''}
+            ${card.type === 'jigsaw' ? `<div class="w-full h-full overflow-hidden rounded-lg flex"><img src="${CONFIG.familyPhotoUrls[card.imgIdx % CONFIG.familyPhotoUrls.length]}" alt="Upload your family photo here" class="h-full object-cover object-center rounded-lg" style="width: 200%; margin-left: ${card.front === 'left' ? '0' : '-100%'}; object-position: ${card.front === 'left' ? 'left' : 'right'} center;"></div>` : ''}
+            ${card.type === 'wordsearch' ? `<span class="text-xs md:text-sm font-medium px-1 text-center">${card.front}</span>` : ''}
+            ${card.type === 'cryptogram' ? `<span class="cryptogram-letter">${card.front}</span>` : ''}
+          </div>
+          <div class="card-back absolute w-full h-full rounded-lg bg-gradient-to-br from-[#8b5a2b] to-[#6b4423] flex items-center justify-center backface-hidden" style="backface-visibility: hidden;">
+            <i class="fas fa-puzzle-piece text-2xl text-[#d4a574]/60"></i>
+          </div>
+        </div>
+      `;
+      return div;
+    }
+
+    function initGame() {
+      state.deck = buildDeck(state.gridSize);
+      state.flipped = [];
+      state.matched = 0;
+      state.moves = 0;
+      state.score = 0;
+      state.matchedWords = [];
+      state.matchedJigsaws = [];
+      state.matchedCryptograms = [];
+      state.hasShownWordSearch = false;
+      state.hasShownCryptogram = false;
+      stopTimer();
+      startTimer();
+
+      document.getElementById('score').textContent = 'Score: 0';
+      document.getElementById('moves').textContent = 'Moves: 0';
+      document.getElementById('legacySidebar').classList.add('hidden');
+      document.getElementById('jigsawAssembly').classList.add('hidden');
+      document.getElementById('jigsawPreview').innerHTML = '';
+      document.getElementById('hobbyBars').innerHTML = '';
+
+      const grid = document.getElementById('cardGrid');
+      grid.className = `flex-1 grid gap-2 md:gap-3 justify-center`;
+      grid.style.gridTemplateColumns = `repeat(${state.gridSize}, minmax(0, 1fr))`;
+      grid.innerHTML = '';
+      state.deck.forEach((card, i) => {
+        grid.appendChild(renderCard(card, i));
+      });
+
+      grid.querySelectorAll('.card').forEach(el => {
+        el.addEventListener('click', () => handleCardClick(parseInt(el.dataset.index)));
+      });
+    }
+
+    function updateHobbyBars() {
+      const bars = CONFIG.hobbyLabels.map((label, i) => {
+        const pct = Math.min(100, Math.max(0, ((state.matched - i * 4) / 4) * 100));
+        return `<div><span class="text-xs">${label}</span><div class="h-2 bg-[#2d1f14] rounded overflow-hidden"><div class="progress-bar-fill h-full bg-[#e8c547]" style="width:${pct}%"></div></div></div>`;
+      });
+      document.getElementById('hobbyBars').innerHTML = bars.join('');
+    }
+
+    function showWordSearchModal() {
+      const words = state.matchedWords.slice(-3).map(w => w.toUpperCase());
+      if (words.length === 0) words.push('FAMILY', 'LOVE', 'DAD');
+      const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      const grid = [];
+      for (let i = 0; i < 3; i++) {
+        grid[i] = [];
+        for (let j = 0; j < 3; j++) {
+          grid[i][j] = letters[Math.floor(Math.random() * 26)];
+        }
+      }
+      words.forEach((word, wi) => {
+        const w = word.slice(0, 3);
+        for (let k = 0; k < w.length; k++) {
+          if (wi < 3 && k < 3) grid[wi][k] = w[k];
+        }
+      });
+      const html = grid.map(row => row.map(c => `<div class="word-search-cell border border-[#8b5a2b] flex items-center justify-center">${c}</div>`).join('')).join('');
+      document.getElementById('wordSearchGrid').innerHTML = html;
+      document.getElementById('wordSearchGrid').className = 'grid grid-cols-3 gap-0 mb-3';
+      document.getElementById('wordSearchModal').classList.remove('hidden');
+    }
+
+    function showCryptogramModal() {
+      const msg = CONFIG.cryptogramMessages[state.matchedCryptograms.length % CONFIG.cryptogramMessages.length];
+      document.getElementById('cryptogramMessage').textContent = msg;
+      document.getElementById('cryptogramModal').classList.remove('hidden');
+    }
+
+    function showWinModal() {
+      stopTimer();
+      playSound('win');
+      document.getElementById('winPlayerName').textContent = CONFIG.playerName;
+      const jigsawDiv = document.getElementById('winJigsaw');
+      jigsawDiv.innerHTML = state.matchedJigsaws.length > 0
+        ? `<img src="${CONFIG.familyPhotoUrls[0]}" alt="Family photo" class="w-32 h-32 object-cover rounded mx-auto">`
+        : '<div class="w-32 h-32 bg-[#8b5a2b] rounded mx-auto flex items-center justify-center"><i class="fas fa-puzzle-piece text-4xl text-[#d4a574]"></i></div>';
+      document.getElementById('winModal').classList.remove('hidden');
+      confetti();
+    }
+
+    function confetti() {
+      const container = document.getElementById('confettiContainer');
+      const colors = ['#e8c547', '#d4a574', '#8b5a2b', '#f5e6d3'];
+      for (let i = 0; i < 50; i++) {
+        const c = document.createElement('div');
+        c.className = 'confetti';
+        c.style.left = Math.random() * 100 + 'vw';
+        c.style.background = colors[Math.floor(Math.random() * colors.length)];
+        c.style.animation = `confetti-fall ${2 + Math.random() * 2}s linear forwards`;
+        c.style.animationDelay = Math.random() * 0.5 + 's';
+        container.appendChild(c);
+        setTimeout(() => c.remove(), 4000);
+      }
+    }
+
+    function handleCardClick(index) {
+      if (state.flipped.length === 2) return;
+      const card = state.deck[index];
+      const el = document.getElementById('cardGrid').children[index];
+      if (el.classList.contains('matched') || el.classList.contains('flipped')) return;
+
+      el.classList.add('flipped');
+      state.flipped.push({ index, card, el });
+
+      if (state.flipped.length === 2) {
+        state.moves++;
+        document.getElementById('moves').textContent = `Moves: ${state.moves}`;
+        const [a, b] = state.flipped;
+        const match = (a.card.pairId && a.card.pairId === b.card.pairId) ||
+          (a.card.type === 'mahjong' && a.card.id === b.card.id);
+
+        if (match) {
+          playSound('match');
+          state.matched++;
+          state.score += 100;
+          document.getElementById('score').textContent = `Score: ${state.score}`;
+          a.el.classList.add('matched');
+          b.el.classList.add('matched');
+          if (a.card.type === 'jigsaw') a.el.querySelector('.card-front').classList.add('jigsaw-snap');
+          if (b.card.type === 'jigsaw') b.el.querySelector('.card-front').classList.add('jigsaw-snap');
+          if (a.card.type === 'wordsearch') state.matchedWords.push(a.card.word || b.card.word || a.card.front);
+          if (a.card.type === 'jigsaw') state.matchedJigsaws.push(a.card.imgIdx);
+          if (a.card.type === 'cryptogram') state.matchedCryptograms.push(a.card.decoded || a.card.front);
+
+          if (state.matched >= 4) {
+            document.getElementById('legacySidebar').classList.remove('hidden');
+            updateHobbyBars();
+          }
+          if (state.matched >= 8 && !state.hasShownWordSearch) {
+            state.hasShownWordSearch = true;
+            setTimeout(showWordSearchModal, 300);
+          }
+          if (state.matched >= 12) {
+            document.getElementById('jigsawAssembly').classList.remove('hidden');
+            const prev = document.getElementById('jigsawPreview');
+            prev.innerHTML = state.matchedJigsaws.slice(0, 4).map((ji, i) =>
+              `<img src="${CONFIG.familyPhotoUrls[ji % CONFIG.familyPhotoUrls.length]}" alt="Jigsaw ${i + 1}" class="w-full h-16 object-cover rounded">`
+            ).join('');
+          }
+          if (state.matched >= 16 && !state.hasShownCryptogram) {
+            state.hasShownCryptogram = true;
+            setTimeout(showCryptogramModal, 300);
+          }
+
+          const totalPairs = (state.gridSize * state.gridSize) / 2;
+          if (state.matched >= totalPairs) setTimeout(showWinModal, 500);
+          state.flipped = [];
+        } else {
+          playSound('mismatch');
+          setTimeout(() => {
+            a.el.classList.remove('flipped');
+            b.el.classList.remove('flipped');
+            state.flipped = [];
+          }, 1000);
+        }
+      }
+    }
+
+    document.getElementById('newGame').addEventListener('click', initGame);
+    document.getElementById('gridToggle').addEventListener('click', () => {
+      state.gridSize = state.gridSize === 6 ? 4 : 6;
+      document.getElementById('gridToggle').textContent = state.gridSize === 6 ? '4×4' : '6×6';
+      initGame();
+    });
+    document.getElementById('closeWordSearch').addEventListener('click', () => document.getElementById('wordSearchModal').classList.add('hidden'));
+    document.getElementById('closeCryptogram').addEventListener('click', () => document.getElementById('cryptogramModal').classList.add('hidden'));
+    document.getElementById('playAgain').addEventListener('click', () => {
+      document.getElementById('winModal').classList.add('hidden');
+      initGame();
+    });
+
+    initGame();
+  </script>
+</body>
+</html>
