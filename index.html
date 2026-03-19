@@ -42,6 +42,17 @@
       100% { filter: brightness(1); }
     }
 
+    .mismatch-shake { animation: mismatchShake 0.5s ease-in-out; }
+    @keyframes mismatchShake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-4px); }
+      40% { transform: translateX(4px); }
+      60% { transform: translateX(-3px); }
+      80% { transform: translateX(3px); }
+    }
+
+    .card { perspective: 1000px; }
+
     .confetti { position: fixed; top: -10px; pointer-events: none; border-radius: 2px; }
     @keyframes confetti-fall {
       to { transform: translateY(100vh) rotate(720deg); }
@@ -60,6 +71,9 @@
     .btn-touch { min-height: 44px; min-width: 44px; }
     .card:focus-visible { outline: 2px solid var(--match-glow); outline-offset: 2px; }
     button:focus-visible { outline: 2px solid var(--match-glow); outline-offset: 2px; }
+    @media (hover: hover) {
+      .card:not(.matched):not(.flipped):hover .card-back { box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+    }
   </style>
 </head>
 <body class="bg-[#2d1f14] text-[#f5e6d3] min-h-screen overflow-x-hidden select-none">
@@ -68,14 +82,15 @@
     const CONFIG = {
       playerName: "Dad",
       familyPhotoUrls: [
-        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Crect fill='%23d4a574' width='120' height='120'/%3E%3Ctext x='60' y='65' text-anchor='middle' fill='%238b5a2b' font-size='14'%3EUpload your family photo here%3C/text%3E%3C/svg%3E",
-        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Crect fill='%23d4a574' width='120' height='120'/%3E%3Ctext x='60' y='65' text-anchor='middle' fill='%238b5a2b' font-size='14'%3EUpload your family photo here%3C/text%3E%3C/svg%3E",
-        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Crect fill='%23d4a574' width='120' height='120'/%3E%3Ctext x='60' y='65' text-anchor='middle' fill='%238b5a2b' font-size='14'%3EUpload your family photo here%3C/text%3E%3C/svg%3E",
-        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Crect fill='%23d4a574' width='120' height='120'/%3E%3Ctext x='60' y='65' text-anchor='middle' fill='%238b5a2b' font-size='14'%3EUpload your family photo here%3C/text%3E%3C/svg%3E"
+        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23d4a574'/%3E%3Cstop offset='100%25' style='stop-color:%23a07850'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect fill='url(%23g)' width='120' height='120'/%3E%3Crect fill='none' stroke='%238b5a2b' stroke-width='2' width='116' height='116' x='2' y='2' rx='4'/%3E%3Ctext x='60' y='58' text-anchor='middle' fill='%238b5a2b' font-size='11' font-family='sans-serif'%3EUpload your%3C/text%3E%3Ctext x='60' y='72' text-anchor='middle' fill='%238b5a2b' font-size='11' font-family='sans-serif'%3Efamily photo here%3C/text%3E%3C/svg%3E",
+        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23d4a574'/%3E%3Cstop offset='100%25' style='stop-color:%23a07850'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect fill='url(%23g)' width='120' height='120'/%3E%3Crect fill='none' stroke='%238b5a2b' stroke-width='2' width='116' height='116' x='2' y='2' rx='4'/%3E%3Ctext x='60' y='58' text-anchor='middle' fill='%238b5a2b' font-size='11' font-family='sans-serif'%3EUpload your%3C/text%3E%3Ctext x='60' y='72' text-anchor='middle' fill='%238b5a2b' font-size='11' font-family='sans-serif'%3Efamily photo here%3C/text%3E%3C/svg%3E",
+        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23d4a574'/%3E%3Cstop offset='100%25' style='stop-color:%23a07850'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect fill='url(%23g)' width='120' height='120'/%3E%3Crect fill='none' stroke='%238b5a2b' stroke-width='2' width='116' height='116' x='2' y='2' rx='4'/%3E%3Ctext x='60' y='58' text-anchor='middle' fill='%238b5a2b' font-size='11' font-family='sans-serif'%3EUpload your%3C/text%3E%3Ctext x='60' y='72' text-anchor='middle' fill='%238b5a2b' font-size='11' font-family='sans-serif'%3Efamily photo here%3C/text%3E%3C/svg%3E",
+        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23d4a574'/%3E%3Cstop offset='100%25' style='stop-color:%23a07850'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect fill='url(%23g)' width='120' height='120'/%3E%3Crect fill='none' stroke='%238b5a2b' stroke-width='2' width='116' height='116' x='2' y='2' rx='4'/%3E%3Ctext x='60' y='58' text-anchor='middle' fill='%238b5a2b' font-size='11' font-family='sans-serif'%3EUpload your%3C/text%3E%3Ctext x='60' y='72' text-anchor='middle' fill='%238b5a2b' font-size='11' font-family='sans-serif'%3Efamily photo here%3C/text%3E%3C/svg%3E"
       ],
       mahjongTiles: ["🀇", "🀈", "🀉", "🀊", "🀋", "🀌", "🀍", "🀎", "🀏", "🀐", "🀑", "🀒", "🀓", "🀔", "🀕", "🀖", "🀗", "🀘"],
       cryptogramMessages: ["We love you Dad!", "You are the best!", "Puzzle master!", "Family forever!"],
-      hobbyLabels: ["Cryptograms", "Jigsaw", "Mahjong", "Word Search"]
+      hobbyLabels: ["Cryptograms", "Jigsaw", "Mahjong", "Word Search"],
+      hobbyIcons: ["fa-key", "fa-puzzle-piece", "fa-th-large", "fa-search"]
     };
   </script>
 
@@ -93,7 +108,10 @@
         <span id="moves">Moves: 0</span>
         <span id="timer">Time: 0:00</span>
       </div>
-      <div class="flex gap-2">
+      <div class="flex gap-2 items-center">
+        <button id="soundToggle" aria-label="Toggle sound" aria-pressed="false" class="btn-touch p-2 bg-[#8b5a2b]/70 rounded-lg hover:bg-[#8b5a2b] transition" title="Sound">
+          <i id="soundIcon" class="fas fa-volume-up text-sm"></i>
+        </button>
         <button id="gridToggle" aria-label="Switch to 4x4 grid (currently 6x6)" aria-pressed="false" class="btn-touch px-4 py-2 bg-[#8b5a2b] rounded-lg text-sm font-medium hover:bg-[#a0683a] active:scale-95 transition">4×4</button>
         <button id="newGame" aria-label="Start new game" class="btn-touch px-5 py-2 bg-[#8b5a2b] rounded-lg font-medium hover:bg-[#a0683a] active:scale-95 transition">
           <i class="fas fa-redo mr-1.5"></i>New Game
@@ -140,7 +158,8 @@
   <div id="winModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 hidden p-4" role="dialog" aria-modal="true" aria-labelledby="winTitle">
     <div class="bg-[#3d2a1a] rounded-xl p-8 max-w-md modal-enter text-center border border-[#8b5a2b]/50 shadow-2xl" onclick="event.stopPropagation()">
       <h2 id="winTitle" class="text-2xl font-bold text-[#e8c547] mb-2">Congratulations, <span id="winPlayerName"></span>!</h2>
-      <p class="text-[#d4a574] mb-4">You completed the Puzzle Legacy!</p>
+      <p class="text-[#d4a574] mb-3">You completed the Puzzle Legacy!</p>
+      <div id="winStats" class="flex justify-center gap-4 mb-4 text-sm text-[#d4a574]/90"></div>
       <div id="winJigsaw" class="mb-6 min-h-[8rem] flex items-center justify-center"></div>
       <button id="playAgain" class="btn-touch px-8 py-4 bg-[#8b5a2b] rounded-xl font-bold text-lg hover:bg-[#a0683a] active:scale-95 transition">Play Again</button>
     </div>
@@ -229,6 +248,7 @@
       osc.stop(start + duration);
     }
     function playSound(type) {
+      if (state.soundMuted) return;
       if (!audioCtx) audioCtx = new AudioContext();
       const t = audioCtx.currentTime;
       if (type === 'match') {
@@ -257,7 +277,8 @@
       matchedJigsaws: [],
       matchedCryptograms: [],
       hasShownWordSearch: false,
-      hasShownCryptogram: false
+      hasShownCryptogram: false,
+      soundMuted: false
     };
 
     function startTimer() {
@@ -336,9 +357,11 @@
     }
 
     function updateHobbyBars() {
+      const icons = CONFIG.hobbyIcons || ['fa-key', 'fa-puzzle-piece', 'fa-th-large', 'fa-search'];
       const bars = CONFIG.hobbyLabels.map((label, i) => {
         const pct = Math.min(100, Math.max(0, ((state.matched - i * 4) / 4) * 100));
-        return `<div><span class="text-xs">${label}</span><div class="h-2 bg-[#2d1f14] rounded overflow-hidden"><div class="progress-bar-fill h-full bg-[#e8c547]" style="width:${pct}%"></div></div></div>`;
+        const icon = icons[i] || 'fa-circle';
+        return `<div><span class="text-xs flex items-center gap-1.5"><i class="fas ${icon} text-[#e8c547]/80 text-[0.65rem] w-3"></i>${label}</span><div class="h-2 bg-[#2d1f14] rounded overflow-hidden mt-0.5"><div class="progress-bar-fill h-full bg-[#e8c547]" style="width:${pct}%"></div></div></div>`;
       });
       document.getElementById('hobbyBars').innerHTML = bars.join('');
     }
@@ -368,6 +391,9 @@
       stopTimer();
       playSound('win');
       document.getElementById('winPlayerName').textContent = CONFIG.playerName;
+      const mins = Math.floor(state.timer / 60);
+      const secs = state.timer % 60;
+      document.getElementById('winStats').innerHTML = `<span>Score: ${state.score}</span><span>Moves: ${state.moves}</span><span>Time: ${mins}:${String(secs).padStart(2, '0')}</span>`;
       const jigsawDiv = document.getElementById('winJigsaw');
       if (state.matchedJigsaws.length > 0) {
         const imgs = [...new Set(state.matchedJigsaws)].slice(0, 4).map((ji, i) =>
@@ -455,9 +481,11 @@
           state.flipped = [];
         } else {
           playSound('mismatch');
+          a.el.classList.add('mismatch-shake');
+          b.el.classList.add('mismatch-shake');
           setTimeout(() => {
-            a.el.classList.remove('flipped');
-            b.el.classList.remove('flipped');
+            a.el.classList.remove('flipped', 'mismatch-shake');
+            b.el.classList.remove('flipped', 'mismatch-shake');
             state.flipped = [];
           }, 1000);
         }
@@ -469,6 +497,14 @@
     function closeWin() { document.getElementById('winModal').classList.add('hidden'); initGame(); }
 
     document.getElementById('newGame').addEventListener('click', initGame);
+    document.getElementById('soundToggle').addEventListener('click', () => {
+      state.soundMuted = !state.soundMuted;
+      const btn = document.getElementById('soundToggle');
+      const icon = document.getElementById('soundIcon');
+      btn.setAttribute('aria-label', state.soundMuted ? 'Unmute sound' : 'Mute sound');
+      btn.setAttribute('aria-pressed', state.soundMuted ? 'true' : 'false');
+      icon.className = state.soundMuted ? 'fas fa-volume-mute text-sm' : 'fas fa-volume-up text-sm';
+    });
     document.getElementById('gridToggle').addEventListener('click', () => {
       state.gridSize = state.gridSize === 6 ? 4 : 6;
       const btn = document.getElementById('gridToggle');
